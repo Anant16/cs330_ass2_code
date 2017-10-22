@@ -100,6 +100,13 @@ main(int argc, char **argv)
         } else if (!strcmp(*argv, "-c")) {      // test the console
 	    if (argc == 1)
 	        ConsoleTest(NULL, NULL);
+	    //new code:
+	    else if(!strcmp(*argv, "-F")){
+	    ASSERT(argc > 1);
+	    	LaunchBatchProcess(*(argv + 1));
+	    	argCount = 2;
+	    }
+	    //end new code
 	    else {
 		ASSERT(argc > 2);
 	        ConsoleTest(*(argv + 1), *(argv + 2));
