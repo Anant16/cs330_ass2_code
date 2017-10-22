@@ -14,6 +14,8 @@
 #include "addrspace.h"
 #include "synch.h"
 
+
+#define BUFFER_SIZE   1024
 //----------------------------------------------------------------------
 // LaunchUserProcess
 // 	Run a user program.  Open the executable, load it into
@@ -81,4 +83,92 @@ ConsoleTest (char *in, char *out)
 	writeDone->P() ;        // wait for write to finish
 	if (ch == 'q') return;  // if q, quit
     }
+}
+
+//----------------------------------------------------------------------
+// LaunchBatchProcess
+//  Run user programs.  Open the executables, load it into
+//  memory, and jump to it.
+//----------------------------------------------------------------------
+
+
+void
+LaunchBatchProcess(char *filename)
+{
+    OpenFile *executablelist = fileSystem->Open(filename);
+    OpenFile* executable;
+    ProcessAddressSpace *space;
+    NachOSThread* childThread
+    if (executablelist == NULL) {
+    printf("Unable to open file %s\n", filename);
+    return;
+    }
+    
+    int filelength = executablelist->Length();
+    char filebuffer[BUFFER_SIZE];
+    executablelist->ReadAt(filebuffer, filelength-1, 0); //filelength - 1 ??
+
+    char name[128], priority[10];
+    int priority_int;
+    int i=0, j=0; 
+    int sched_type;
+
+    while(filebuffer[i] != '\n')
+    {
+        name[j] = filebuffer[i];
+        ++i, ++j;
+    }
+    name[j] = '\0';
+    sched_type = atoi(name);
+
+    while( i < filelength )
+    {
+        while(filebuffer[i] =='\n' || filebuffer[i] == ' ') ++i;
+
+        j=0;
+        while(filebuffer[i] != ' ' || filebuffer[i] != '\n' )
+        {
+            name[j++] = filebuffer[i++];
+        }
+        name[j] = '\0';
+        while(filebuffer[i]==' ') ++i;
+
+        if(filebuffer[i] == '\n')
+        {
+            priority_int = 100;
+        }
+        else
+        {
+            //read priority
+            j=0;
+            while(filebuffer[i]!='\n' || filebuffer!=' ')
+            {
+                priority[j++] = filebuffer[i++];
+            }
+            priority[j] = '\0';
+            priority_int = atoi(priority);
+
+            while(filebuffer[i]!='\n') ++i;
+        }
+
+        executable = fileSystem->Open(name);
+
+        if (executable == NULL) {
+        printf("Unable to open file %s\n", filename);
+        return;
+        }
+        childThread = new NachOSThread(name, priority_int);
+        childThread->space = new ProcessAddressSpace(executable);
+        delete executable;          // close file
+
+        childThread->space->InitUserModeCPURegisters();      // set the initial register values
+        childThread->space->RestoreContextOnSwitch();        // load page table register
+
+        childThread->ThreadFork(*ForkStartFunction, 0);
+        
+    }
+
+    delete executablelist;
+
+    syscall_wrapper_Exit(0);
 }

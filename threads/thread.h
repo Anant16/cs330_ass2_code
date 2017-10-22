@@ -84,6 +84,7 @@ class NachOSThread {
 
   public:
     NachOSThread(char* debugName);		// initialize a Thread 
+    NachOSThread(char* debugName, int priority);
     ~NachOSThread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
 					// must not be running when delete 
@@ -134,7 +135,7 @@ class NachOSThread {
 
     void IncInstructionCount();
     unsigned GetInstructionCount();
-
+    
   private:
     // some of the private data for this class is listed above
     
@@ -154,6 +155,10 @@ class NachOSThread {
     int waitchild_id;                   // Child I am waiting on (as a result of a Join call)
 
     unsigned instructionCount;		// Keeps track of the instruction count executed by this thread
+    //assignment 2:
+    int priority;
+    
+
 
 #ifdef USER_PROGRAM
 // A thread running a user program actually has *two* sets of CPU registers -- 
