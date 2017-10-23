@@ -136,6 +136,9 @@ class NachOSThread {
     void IncInstructionCount();
     unsigned GetInstructionCount();
     
+    int Entry_Time_Ready_Queue;
+    int Estimated_CPU_Burst;
+    int base_priority;
   private:
     // some of the private data for this class is listed above
     
@@ -156,6 +159,7 @@ class NachOSThread {
 
     unsigned instructionCount;		// Keeps track of the instruction count executed by this thread
     //assignment 2:
+
     int priority;
     
 

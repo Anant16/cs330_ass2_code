@@ -120,6 +120,7 @@ LaunchBatchProcess(char *filename)
     }
     name[j] = '\0';
     sched_type = atoi(name);
+    scheduler->type = sched_type;
 
     while( i < filelength )
     {

@@ -30,6 +30,7 @@ class ProcessScheduler {
     
     void Tail();                        // Used by fork()
 
+    int type; // added by me
   private:
     List *listOfReadyThreads;  		// queue of threads that are ready to run,
 				// but not running

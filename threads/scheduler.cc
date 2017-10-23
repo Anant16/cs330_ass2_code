@@ -29,7 +29,8 @@
 
 ProcessScheduler::ProcessScheduler()
 { 
-    listOfReadyThreads = new List; 
+    listOfReadyThreads = new List;
+    type = 1; //added by me 
 } 
 
 //----------------------------------------------------------------------
@@ -55,6 +56,19 @@ ProcessScheduler::MoveThreadToReadyQueue (NachOSThread *thread)
 {
     DEBUG('t', "Putting thread %s with PID %d on ready list.\n", thread->getName(), thread->GetPID());
 
+    int currenttime = stats->totalTicks;
+    //if it is being executed for the first time...
+    if(thread -> Entry_Time_Ready_Queue==0 && thread->GetPID()!=0)
+    {
+        thread ->Thread_Start_Time=currenttime;
+       // printf("Call thread as pid , %d\n",thread->GetPID());    
+    }
+
+    //if it was sleeping then add duration of sleep.
+    thread ->Entry_Time_Ready_Queue=currenttime; 
+    if (thread->getStatus() == BLOCKED)
+        thread->Total_Sleep = thread->Total_Sleep + currenttime - (thread->Start_Sleep);
+
     thread->setStatus(READY);
     listOfReadyThreads->Append((void *)thread);
 }
@@ -64,13 +78,93 @@ ProcessScheduler::MoveThreadToReadyQueue (NachOSThread *thread)
 // 	Return the next thread to be scheduled onto the CPU.
 //	If there are no ready threads, return NULL.
 // Side effect:
-//	Thread is removed from the ready list.
+//	NachOSThread is removed from the ready list.
 //----------------------------------------------------------------------
 
 NachOSThread *
 ProcessScheduler::SelectNextReadyThread ()
 {
-    return (NachOSThread *)listOfReadyThreads->Remove();
+    
+    if(type == 2)
+    {
+        int min_burst=1<<16 , entry_time=0;
+        NachOSThread* selectedThread;
+        List* ptr = listOfReadyThreads->getFirst();
+        if(ptr==NULL) return NULL;   //empty-list
+        while(ptr!=NULL)
+        {
+            if(ptr->item != NULL)
+            {
+                if(ptr->item->Estimated_CPU_Burst < min_burst)
+                {
+                    min_burst = ptr->item->Estimated_CPU_Burst;
+                    entry_time = ptr->item->Entry_Time_Ready_Queue;
+                    selectedThread = (NachOSThread *)ptr->item;
+                }
+                if(ptr->item->Estimated_CPU_Burst == min_burst)
+                {
+                    if(entry_time > ptr->item->Entry_Time_Ready_Queue)
+                    {   
+                        entry_time = ptr->item->Entry_Time_Ready_Queue;
+                        selectedThread = (NachOSThread *)ptr->item;
+                    }
+                }   
+            }
+            else
+                printf("ERROR: element present in ready queue with null thread attached." );
+        }
+
+        if(selectedThread != NULL) 
+        {
+            ptr = listOfReadyThreads->getFirst();
+            if(ptr==NULL) return NULL;
+            while(ptr!=NULL)
+            {
+                ptr = (NachOSThread *)listOfReadyThreads->Remove();
+                if(ptr->item != NULL)
+                {
+                    if(selectedThread == (NachOSThread *)ptr->item)
+                        return (NachOSThread *)ptr->item;
+                    else
+                        listOfReadyThreads->Append(void *ptr);
+                }
+                else
+                    printf("ERROR: element present in ready queue with null thread attached." );
+            }       
+        }
+    }
+    // UNIX ---------------------------------------------
+    else if(type >=7 && type <= 10)
+    {
+        NachOSThread* selectedThread;
+        List* ptr = listOfReadyThreads->getFirst();
+        if(ptr==NULL) return NULL;   //empty-list
+        while(ptr!=NULL)
+        {
+            if(ptr->item != NULL)
+            {
+                if(ptr->item->Estimated_CPU_Burst < min_burst)
+                {
+                    min_burst = ptr->item->Estimated_CPU_Burst;
+                    entry_time = ptr->item->Entry_Time_Ready_Queue;
+                    selectedThread = (NachOSThread *)ptr->item;
+                }
+                if(ptr->item->Estimated_CPU_Burst == min_burst)
+                {
+                    if(entry_time > ptr->item->Entry_Time_Ready_Queue)
+                    {   
+                        entry_time = ptr->item->Entry_Time_Ready_Queue;
+                        selectedThread = (NachOSThread *)ptr->item;
+                    }
+                }   
+            }
+            else
+                printf("ERROR: element present in ready queue with null thread attached." );
+        }   
+    }
+
+    else
+        return (NachOSThread *)listOfReadyThreads->Remove();
 }
 
 //----------------------------------------------------------------------

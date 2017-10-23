@@ -77,7 +77,8 @@ NachOSThread::NachOSThread(char* threadName)
 NachOSThread::NachOSThread(char* threadName, int _priority)
 {
     int i;
-    priority = _priority;
+    base_priority = 50;
+    priority = base_priority + _priority;
     name = threadName;
     stackTop = NULL;
     stack = NULL;
@@ -86,6 +87,9 @@ NachOSThread::NachOSThread(char* threadName, int _priority)
     space = NULL;
     stateRestored = true;
 #endif
+
+    Entry_Time_Ready_Queue=0;
+    Estimated_CPU_Burst;   //to be determined...
 
     threadArray[thread_index] = this;
     pid = thread_index;
