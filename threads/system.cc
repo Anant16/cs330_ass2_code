@@ -25,6 +25,15 @@ unsigned thread_index;                  // Index into this array (also used to a
 bool initializedConsoleSemaphores;
 bool exitThreadArray[MAX_THREAD_COUNT];  //Marks exited threads
 
+//----------------------Assignment 2--------------------------
+int basePriorityValue[MAX_THREAD_COUNT];
+int priorityValue[MAX_THREAD_COUNT]; //to maintain priority value of threads
+ThreadStatus threadStatusPID[MAX_THREAD_COUNT];
+int cpuCount[MAX_THREAD_COUNT]; 
+
+//------------------------------------------------------------
+
+
 TimeSortedWaitQueue *sleepQueueHead;    // Needed to implement SC_Sleep
 
 #ifdef FILESYS_NEEDED
@@ -77,7 +86,13 @@ TimerInterruptHandler(int dummy)
            delete ptr;
         }
         //printf("[%d] Timer interrupt.\n", stats->totalTicks);
-        interrupt->YieldOnReturn();
+        //interrupt->YieldOnReturn();
+        if(scheduler->type > 2)
+        {
+            int current_burst_time = stats->totalTicks - stats->current_burst_start_time;
+            if(current_burst_time > timer->TimeOfNextInterrupt() )
+                interrupt->YieldOnReturn();
+        }
     }
 }
 

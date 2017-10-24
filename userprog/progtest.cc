@@ -113,6 +113,10 @@ LaunchBatchProcess(char *filename)
     int i=0, j=0; 
     int sched_type;
 
+    //for main thread.
+    priorityValue[currentThread->GetPID()] = 0;
+    basePriorityValue[currentThread->GetPID()] = 50;
+
     while(filebuffer[i] != '\n')
     {
         name[j] = filebuffer[i];
@@ -158,8 +162,13 @@ LaunchBatchProcess(char *filename)
         printf("Unable to open file %s\n", filename);
         return;
         }
-        childThread = new NachOSThread(name, priority_int);
+        childThread = new NachOSThread(name);
         childThread->space = new ProcessAddressSpace(executable);
+
+        basePriorityValue[childThread->GetPID()] = 50;
+        priorityValue[childThread->GetPID()] = priority_int + basePriorityValue[childThread->GetPID()];
+        
+
         delete executable;          // close file
 
         childThread->space->InitUserModeCPURegisters();      // set the initial register values

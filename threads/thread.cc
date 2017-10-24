@@ -39,7 +39,8 @@ NachOSThread::NachOSThread(char* threadName)
     name = threadName;
     stackTop = NULL;
     stack = NULL;
-    status = JUST_CREATED;
+    //status = JUST_CREATED;
+    setStatus(JUST_CREATED);
 #ifdef USER_PROGRAM
     space = NULL;
     stateRestored = true;
@@ -54,6 +55,12 @@ NachOSThread::NachOSThread(char* threadName)
        currentThread->RegisterNewChild (pid);
     }
     else ppid = -1;
+    //----------assignment-2-------------
+    cpuCount[pid] = 0;
+    priorityValue[pid] = priorityValue[ppid];
+    basePriorityValue[pid] = basePriorityValue[ppid];
+
+    //----------------------------
 
     childcount = 0;
     waitchild_id = -1;
@@ -74,40 +81,40 @@ NachOSThread::NachOSThread(char* threadName)
 
 
 
-NachOSThread::NachOSThread(char* threadName, int _priority)
-{
-    int i;
-    base_priority = 50;
-    priority = base_priority + _priority;
-    name = threadName;
-    stackTop = NULL;
-    stack = NULL;
-    status = JUST_CREATED;
-#ifdef USER_PROGRAM
-    space = NULL;
-    stateRestored = true;
-#endif
+// NachOSThread::NachOSThread(char* threadName, int _priority)
+// {
+//     int i;
+//     base_priority = 50;
+//     priority = base_priority + _priority;
+//     name = threadName;
+//     stackTop = NULL;
+//     stack = NULL;
+//     status = JUST_CREATED;
+// #ifdef USER_PROGRAM
+//     space = NULL;
+//     stateRestored = true;
+// #endif
 
-    Entry_Time_Ready_Queue=0;
-    Estimated_CPU_Burst;   //to be determined...
+//     Entry_Time_Ready_Queue=0;
+//     Estimated_CPU_Burst;   //to be determined...
 
-    threadArray[thread_index] = this;
-    pid = thread_index;
-    thread_index++;
-    ASSERT(thread_index < MAX_THREAD_COUNT);
-    if (currentThread != NULL) {
-       ppid = currentThread->GetPID();
-       currentThread->RegisterNewChild (pid);
-    }
-    else ppid = -1;
+//     threadArray[thread_index] = this;
+//     pid = thread_index;
+//     thread_index++;
+//     ASSERT(thread_index < MAX_THREAD_COUNT);
+//     if (currentThread != NULL) {
+//        ppid = currentThread->GetPID();
+//        currentThread->RegisterNewChild (pid);
+//     }
+//     else ppid = -1;
 
-    childcount = 0;
-    waitchild_id = -1;
+//     childcount = 0;
+//     waitchild_id = -1;
 
-    for (i=0; i<MAX_CHILD_COUNT; i++) exitedChild[i] = false;
+//     for (i=0; i<MAX_CHILD_COUNT; i++) exitedChild[i] = false;
 
-    instructionCount = 0;
-}
+//     instructionCount = 0;
+// }
 
 
 //----------------------------------------------------------------------
@@ -267,8 +274,9 @@ NachOSThread::Exit (bool terminateSim, int exitcode)
 
     NachOSThread *nextThread;
 
-    status = BLOCKED;
-
+    // status = BLOCKED;
+    printf("thread[%d] exiting, average-cpu-burst = %d\n",pid, Estimated_CPU_Burst );
+    setStatus(BLOCKED);
     // Set exit code in parent's structure provided the parent hasn't exited
     if (ppid != -1) {
        ASSERT(threadArray[ppid] != NULL);
@@ -322,6 +330,9 @@ NachOSThread::YieldCPU ()
 	scheduler->MoveThreadToReadyQueue(this);
 	scheduler->ScheduleThread(nextThread);
     }
+
+    // else :: the current thread will continue to run wtihout updating 
+    // the priority of any thread at the end of this time quanta.
     (void) interrupt->SetLevel(oldLevel);
 }
 
@@ -354,7 +365,8 @@ NachOSThread::PutThreadToSleep ()
     
     DEBUG('t', "Sleeping thread \"%s\" with pid %d\n", getName(), pid);
 
-    status = BLOCKED;
+    //status = BLOCKED;
+    setStatus(BLOCKED);
     while ((nextThread = scheduler->SelectNextReadyThread()) == NULL)
 	interrupt->Idle();	// no one to run, wait for an interrupt
         
@@ -608,4 +620,84 @@ unsigned
 NachOSThread::GetInstructionCount (void)
 {
    return instructionCount;
+}
+
+void
+NachOSThread::setStatus(ThreadStatus st)
+{
+  if(status == READY)
+  {
+    ASSERT(st == RUNNING);  // as it can only go to running from ready.
+    stats -> set_current_burst_start_time();  
+  }
+
+  else if(status == RUNNING)
+  {
+    if(st == READY || st == BLOCKED)
+    {
+
+      int burst_time = stats->totalTicks - stats->current_burst_start_time;
+      printf("thread[%d] burst time over, burst_time = %d, present-average = %d\n", pid, burst_time, Estimated_CPU_Burst);
+      if(burst_time > 0)
+      {
+        if(scheduler->type >= 7 && scheduler->type <=10)
+        {
+          cpuCount[pid] += burst_time;
+          int i;
+          for(i=0; i< thread_index; ++i)
+          {
+            if(!exitThreadArray[i])
+            {
+              cpuCount[i] = cpuCount[i]>>1;
+              priorityValue[i] = basePriorityValue[i] + cpuCount[i]>>1;
+            }
+          }
+        }
+
+        if(scheduler->type == 2 )
+        {
+          Estimated_CPU_Burst = (int)((1-a_factor)*Estimated_CPU_Burst + (a_factor)*burst_time);
+        }
+      }
+    }
+
+    else
+    {
+      printf("----------------WARNING: status going from RUNNING to JUST_CREATED or RUNNING---------\n");
+    }
+  }
+
+  else if(status == BLOCKED)
+  {
+    if(st == READY)
+    {
+      Entry_Time_Ready_Queue = stats -> totalTicks;
+    }
+    else
+    {
+      printf("---------------ERROR: going from BLOCKED to other than READY-----------------------\n");
+    }
+  }
+
+  else if(status == JUST_CREATED)
+  {
+    if(st == READY)
+    {
+      Entry_Time_Ready_Queue = stats -> totalTicks;
+    }
+    else if(st == RUNNING)
+    {
+      printf("----------- WARNING: Going from JUST_CREATED to RUNNING---------\n");
+      stats->set_current_burst_start_time();
+    }
+    else
+      ASSERT(false);
+  }
+
+  else
+    ASSERT(false);
+
+  status = st;
+  threadStatusPid[pid] = st;
+
 }

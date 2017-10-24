@@ -39,6 +39,12 @@ class Statistics {
     Statistics(); 		// initialize everything to zero
 
     void Print();		// print collected statistics
+
+    //--------------------------------------------------
+    int current_burst_start_time;
+
+    void set_current_burst_start_time(){current_burst_start_time = totalTicks; }
+    //--------------------------------------------------
 };
 
 // Constants used to reflect the relative time an operation would

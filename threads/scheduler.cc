@@ -87,80 +87,139 @@ ProcessScheduler::SelectNextReadyThread ()
     
     if(type == 2)
     {
-        int min_burst=1<<16 , entry_time=0;
+        int min_burst=1<<16 ;
         NachOSThread* selectedThread;
-        List* ptr = listOfReadyThreads->getFirst();
-        if(ptr==NULL) return NULL;   //empty-list
-        while(ptr!=NULL)
+        
+        int i;
+        int selectedThreadpid=-1;
+
+        for(i=0; i<thread_index; ++i)
         {
-            if(ptr->item != NULL)
+            if(!exitThreadArray[i] && threadStatusPid[i] == READY)
             {
-                if(ptr->item->Estimated_CPU_Burst < min_burst)
+                if(threadArray[i]->Estimated_CPU_Burst < min_burst)
                 {
-                    min_burst = ptr->item->Estimated_CPU_Burst;
-                    entry_time = ptr->item->Entry_Time_Ready_Queue;
-                    selectedThread = (NachOSThread *)ptr->item;
+                    selectedThreadpid = i;
+                    min_burst = threadArray[i]->Estimated_CPU_Burst;
                 }
-                if(ptr->item->Estimated_CPU_Burst == min_burst)
+                else if( threadArray[i]->Estimated_CPU_Burst == min_burst)
                 {
-                    if(entry_time > ptr->item->Entry_Time_Ready_Queue)
-                    {   
-                        entry_time = ptr->item->Entry_Time_Ready_Queue;
-                        selectedThread = (NachOSThread *)ptr->item;
+                    if( threadArray[i]->Entry_Time_Ready_Queue < threadArray[selectedThreadpid]->Entry_Time_Ready_Queue )
+                    {
+                        selectedThreadpid = i;
+                        min_burst = threadArray[i]->Estimated_CPU_Burst;
                     }
-                }   
+                }
             }
-            else
-                printf("ERROR: element present in ready queue with null thread attached." );
         }
 
-        if(selectedThread != NULL) 
-        {
-            ptr = listOfReadyThreads->getFirst();
-            if(ptr==NULL) return NULL;
-            while(ptr!=NULL)
-            {
-                ptr = (NachOSThread *)listOfReadyThreads->Remove();
-                if(ptr->item != NULL)
-                {
-                    if(selectedThread == (NachOSThread *)ptr->item)
-                        return (NachOSThread *)ptr->item;
-                    else
-                        listOfReadyThreads->Append(void *ptr);
-                }
-                else
-                    printf("ERROR: element present in ready queue with null thread attached." );
-            }       
-        }
+        if(selectedThreadpid != -1)
+            return threadArray[selectedThreadpid];
+        else
+            return NULL;
+
+        // List* ptr = listOfReadyThreads->getFirst();
+        // if(ptr==NULL) return NULL;   //empty-list
+        // while(ptr!=NULL)
+        // {
+        //     if(ptr->item != NULL)
+        //     {
+        //         if(ptr->item->Estimated_CPU_Burst < min_burst)
+        //         {
+        //             min_burst = ptr->item->Estimated_CPU_Burst;
+        //             entry_time = ptr->item->Entry_Time_Ready_Queue;
+        //             selectedThread = (NachOSThread *)ptr->item;
+        //         }
+        //         if(ptr->item->Estimated_CPU_Burst == min_burst)
+        //         {
+        //             if(entry_time > ptr->item->Entry_Time_Ready_Queue)
+        //             {   
+        //                 entry_time = ptr->item->Entry_Time_Ready_Queue;
+        //                 selectedThread = (NachOSThread *)ptr->item;
+        //             }
+        //         }   
+        //     }
+        //     else
+        //         printf("ERROR: element present in ready queue with null thread attached." );
+        // }
+
+        
+
+        // if(selectedThread != NULL) 
+        // {
+        //     ptr = listOfReadyThreads->getFirst();
+        //     if(ptr==NULL) return NULL;
+        //     while(ptr!=NULL)
+        //     {
+        //         ptr = (NachOSThread *)listOfReadyThreads->Remove();
+        //         if(ptr->item != NULL)
+        //         {
+        //             if(selectedThread == (NachOSThread *)ptr->item)
+        //                 return (NachOSThread *)ptr->item;
+        //             else
+        //                 listOfReadyThreads->Append(void *ptr);
+        //         }
+        //         else
+        //             printf("ERROR: element present in ready queue with null thread attached." );
+        //     }       
+        // }
     }
     // UNIX ---------------------------------------------
     else if(type >=7 && type <= 10)
     {
         NachOSThread* selectedThread;
-        List* ptr = listOfReadyThreads->getFirst();
-        if(ptr==NULL) return NULL;   //empty-list
-        while(ptr!=NULL)
+        int i;
+        int selectedThreadpid=-1;
+        int min_priority= 1<<16;
+
+        for(i=0; i<thread_index; ++i)
         {
-            if(ptr->item != NULL)
+            if(!exitThreadArray[i] && threadStatusPid[i] == READY)
             {
-                if(ptr->item->Estimated_CPU_Burst < min_burst)
+                if(priorityValue[i] < min_priority)
                 {
-                    min_burst = ptr->item->Estimated_CPU_Burst;
-                    entry_time = ptr->item->Entry_Time_Ready_Queue;
-                    selectedThread = (NachOSThread *)ptr->item;
+                    selectedThreadpid = i;
+                    min_priority = priorityValue[i];
                 }
-                if(ptr->item->Estimated_CPU_Burst == min_burst)
+                else if( priorityValue[i] == min_priority)
                 {
-                    if(entry_time > ptr->item->Entry_Time_Ready_Queue)
-                    {   
-                        entry_time = ptr->item->Entry_Time_Ready_Queue;
-                        selectedThread = (NachOSThread *)ptr->item;
+                    if( threadArray[i]->Entry_Time_Ready_Queue < threadArray[selectedThreadpid]->Entry_Time_Ready_Queue )
+                    {
+                        selectedThreadpid = i;
+                        min_priority = priorityValue[i];
                     }
-                }   
+                }
             }
-            else
-                printf("ERROR: element present in ready queue with null thread attached." );
-        }   
+        }
+
+        if(selectedThreadpid != -1)
+            return threadArray[selectedThreadpid];
+        else
+            return NULL;
+        // List* ptr = listOfReadyThreads->getFirst();
+        // if(ptr==NULL) return NULL;   //empty-list
+        // while(ptr!=NULL)
+        // {
+        //     if(ptr->item != NULL)
+        //     {
+        //         if(ptr->item->Estimated_CPU_Burst < min_burst)
+        //         {
+        //             min_burst = ptr->item->Estimated_CPU_Burst;
+        //             entry_time = ptr->item->Entry_Time_Ready_Queue;
+        //             selectedThread = (NachOSThread *)ptr->item;
+        //         }
+        //         if(ptr->item->Estimated_CPU_Burst == min_burst)
+        //         {
+        //             if(entry_time > ptr->item->Entry_Time_Ready_Queue)
+        //             {   
+        //                 entry_time = ptr->item->Entry_Time_Ready_Queue;
+        //                 selectedThread = (NachOSThread *)ptr->item;
+        //             }
+        //         }   
+        //     }
+        //     else
+        //         printf("ERROR: element present in ready queue with null thread attached." );
+        // }   
     }
 
     else

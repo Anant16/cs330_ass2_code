@@ -37,6 +37,13 @@ extern unsigned thread_index;                  // Index into this array (also us
 extern bool initializedConsoleSemaphores;       // Used to initialize the semaphores for console I/O exactly once
 extern bool exitThreadArray[];          // Marks exited threads
 
+//----------------------Assignment 2--------------------------
+extern int basePriorityValue[];
+extern int priorityValue[]; //to maintain priority value of different threads
+extern ThreadStatus threadStatusPID[];
+extern int cpuCount[]; 
+
+//------------------------------------------------------------
 
 
 class TimeSortedWaitQueue {             // Needed to implement SysCall_Sleep
